@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner Web App</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Add some styling for the product display area */
+        #productDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #e9f7ef; /* Light green background */
+            display: none; /* Hidden by default */
+            text-align: left;
+        }
+        #productDisplay h2 {
+            margin-top: 0;
+            color: #28a745; /* Green for product name */
+        }
+        #productDisplay p {
+            margin-bottom: 5px;
+        }
+        #productDisplay button {
+            background-color: #28a745; /* Green pay button */
+            margin-top: 15px;
+            width: 100%;
+            font-size: 1.2em;
+        }
+        #productDisplay button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Barcode Scanner</h1>
+
+        <a href="admin.html" class="nav-link">Go to Admin Interface</a>
+
+        <video id="video" playsinline></video>
+        <div id="status">Ready to scan...</div>
+        <button id="startButton">Start Camera</button>
+        <button id="stopButton">Stop Camera</button>
+
+        <!-- New section for product display and pay button -->
+        <div id="productDisplay">
+            <h2 id="productNameDisplay"></h2>
+            <p>Price: <span id="productPriceDisplay"></span></p>
+            <button id="payButton">Pay Now</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="app.js"></script>
+</body>
+</html>

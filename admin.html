@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Barcode Properties</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Admin-specific styles or overrides */
+        .admin-section {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .admin-section input[type="text"],
+        .admin-section textarea {
+            width: calc(100% - 22px); /* Account for padding/border */
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .admin-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .admin-actions {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        #mappedBarcodesList {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        #mappedBarcodesList li {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        #mappedBarcodesList li .item-details {
+            flex-grow: 1; /* Take up available space */
+        }
+        #mappedBarcodesList li button {
+            background-color: #dc3545; /* Red for delete */
+            padding: 5px 10px;
+            font-size: 0.8em;
+            margin-left: 10px; /* Space from details */
+        }
+        #mappedBarcodesList li button:hover {
+             background-color: #c82333;
+        }
+        .nav-link {
+            display: block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Interface</h1>
+
+        <a href="index.html" class="nav-link">Go to Scanner App</a>
+
+        <div class="admin-section">
+            <h2>Add/Edit Product</h2>
+            <form id="barcodePropertiesForm" style="margin-top: 20px;">
+                <label for="eanNumber">EAN Number:</label>
+                <input type="text" id="eanNumber" placeholder="Enter EAN/Barcode here" required>
+
+                <label for="productName">Product Name:</label>
+                <input type="text" id="productName" placeholder="e.g., Apple iPhone 15" required>
+
+                <label for="price">Price:</label>
+                <input type="text" id="price" placeholder="e.g., $999.99" required>
+
+                <button type="submit">Save Product</button>
+            </form>
+        </div>
+
+        <div class="admin-section">
+            <h2>Mapped Products</h2>
+            <ul id="mappedBarcodesList">
+                <!-- Mapped barcodes will be loaded here by JS -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- No ZXing-JS library needed here anymore -->
+    <script src="admin.js"></script> <!-- New JS file for admin logic -->
+</body>
+</html>
