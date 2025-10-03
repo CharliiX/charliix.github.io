@@ -8,7 +8,7 @@ const productNameDisplay = document.getElementById('productNameDisplay');
 const productPriceDisplay = document.getElementById('productPriceDisplay');
 const payButton = document.getElementById('payButton');
 
-let codeReader; // Will hold the ZXing CodeReader instance
+let codeReader = null; // Initialize as null to clearly indicate no active reader
 
 const PAYMENT_BASE_URL = 'https://payment.site/'; // Ensure this is HTTPS for production/deployment!
 
@@ -18,6 +18,18 @@ async function startScanner() {
     video.style.display = 'block';
     productDisplay.style.display = 'none';
     statusDiv.textContent = 'Starting camera...';
+
+    // --- CRITICAL: Ensure previous stream is completely stopped before starting a new one ---
+    // If a reader somehow exists from a previous failed attempt or incomplete stop, reset it.
+    if (codeReader) {
+        codeReader.reset();
+        codeReader = null; // Clear the reference
+    }
+    // Also explicitly clear the video element's source
+    video.srcObject = null;
+    video.load(); // Try reloading the video element to clear its state
+    // --- END CRITICAL CLEANUP ---
+
 
     try {
         codeReader = new ZXing.BrowserMultiFormatReader();
@@ -33,11 +45,8 @@ async function startScanner() {
             throw new Error('No video input devices found.');
         }
 
-        // --- REFINED CONSTRAINTS FOR DECODEFROMVIDEODEVICE ---
-        // Pass the constraints directly to decodeFromVideoDevice
         const constraints = {
             deviceId: { exact: selectedDeviceId }, // Explicitly select device
-            // Ideal resolution for scanning, can often improve focus behavior
             width: { ideal: 1920 }, // High width for better detail
             height: { ideal: 1080 }, // High height for better detail
             // Attempt to request continuous autofocus
@@ -50,31 +59,41 @@ async function startScanner() {
                 console.log('Scanned:', result.text);
                 statusDiv.textContent = `Scanned: ${result.text}`;
                 handleBarcode(result.text);
-                stopScanner();
+                stopScanner(); // Stop camera after successful scan
             }
             if (err && !(err instanceof ZXing.NotFoundException)) {
                 console.error(err);
                 statusDiv.textContent = `Error: ${err}`;
             }
         }, constraints); // Pass the constraints object here!
-        // --- END REFINED CONSTRAINTS ---
 
         statusDiv.textContent = 'Camera started. Point at a barcode.';
     } catch (error) {
         console.error('Error starting camera:', error);
         statusDiv.textContent = `Error accessing camera: ${error.message}`;
+        
+        // Ensure buttons are reset even if camera fails to start
         startButton.disabled = false;
         stopButton.disabled = true;
         video.style.display = 'none';
-        // No need to stop currentStream here, as ZXing-JS manages it internally for this call type
+        
+        // Ensure codeReader is null on failure to prevent stale state
+        if (codeReader) {
+            codeReader.reset();
+            codeReader = null;
+        }
+        video.srcObject = null; // Clear source on error
+        video.load();
     }
 }
 
 function stopScanner() {
     if (codeReader) {
         codeReader.reset(); // This properly stops the camera stream when using decodeFromVideoDevice
+        codeReader = null; // Clear the reference to the reader
     }
-    video.srcObject = null; // Clear srcObject to ensure video stops visually
+    video.srcObject = null; // Crucial: Disconnect video element from any stream
+    video.load(); // Important: Reload the video element to fully reset its state
     video.style.display = 'none';
     startButton.disabled = false;
     stopButton.disabled = true;
