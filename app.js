@@ -82,4 +82,42 @@ function stopScanner() {
     statusDiv.textContent = 'Camera stopped.';
 }
 
-// ... (handleBarcode, event listeners for startButton, stopButton, payButton are unchanged) ...
+async function handleBarcode(barcode) {
+    const mappings = JSON.parse(localStorage.getItem('barcodeMappings')) || {};
+    const productInfo = mappings[barcode];
+
+    if (productInfo) {
+        productNameDisplay.textContent = productInfo.productName;
+        productPriceDisplay.textContent = productInfo.price;
+        productDisplay.style.display = 'block';
+
+        const encodedProductName = encodeURIComponent(productInfo.productName);
+        const encodedPrice = encodeURIComponent(productInfo.price);
+
+        const paymentUrl = `${PAYMENT_BASE_URL}${encodedProductName}&${encodedPrice}`;
+
+        payButton.dataset.paymentUrl = paymentUrl;
+
+        statusDiv.textContent = `Product found: ${productInfo.productName}.`;
+    } else {
+        productDisplay.style.display = 'none';
+        statusDiv.textContent = `Scanned: ${barcode}. No properties found. Please add it in the Admin Interface.`;
+        alert(`Barcode "${barcode}" not recognized. Please add it in the Admin Interface.`);
+    }
+}
+
+startButton.addEventListener('click', startScanner);
+stopButton.addEventListener('click', stopScanner);
+
+payButton.addEventListener('click', () => {
+    const paymentUrl = payButton.dataset.paymentUrl;
+    if (paymentUrl) {
+        console.log('Navigating to payment URL:', paymentUrl);
+        window.location.href = paymentUrl;
+    } else {
+        alert('No payment URL found. Please scan a product first.');
+    }
+});
+
+stopButton.disabled = true;
+productDisplay.style.display = 'none';
