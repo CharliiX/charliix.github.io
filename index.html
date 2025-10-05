@@ -40,7 +40,9 @@
 
         <a href="admin.html" class="nav-link">Go to Admin Interface</a>
 
-        <video id="video" playsinline></video>
+        <!-- The video element itself is still needed as QuaggaJS renders into it -->
+        <div id="interactive" class="viewport"></div> <!-- QuaggaJS will render its video here -->
+        
         <div id="status">Ready to scan...</div>
         <button id="startButton">Start Camera</button>
         <button id="stopButton">Stop Camera</button>
@@ -53,7 +55,11 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <!-- REMOVE ZXing-JS CDN -->
+    <!-- <script src="https://unpkg.com/@zxing/library@latest"></script> -->
+    
+    <!-- ADD QuaggaJS CDN -->
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
