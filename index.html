@@ -32,24 +32,6 @@
         #productDisplay button:hover {
             background-color: #218838;
         }
-        /* Essential QuaggaJS styling */
-        .viewport {
-            position: relative;
-            width: 100%; /* Or your desired width */
-            height: auto; /* Allow height to adjust */
-            text-align: center; /* Center content */
-        }
-        .viewport video, .viewport canvas {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .viewport canvas {
-            position: absolute; /* Overlay canvas on video */
-            left: 0;
-            top: 0;
-        }
     </style>
 </head>
 <body>
@@ -58,15 +40,14 @@
 
         <a href="admin.html" class="nav-link">Go to Admin Interface</a>
 
-        <!-- IMPORTANT: Place a video element inside the interactive div -->
-        <div id="interactive" class="viewport">
-            <video id="barcode-video" playsinline></video>
-        </div>
+        <!-- The video element itself is still needed as QuaggaJS renders into it -->
+        <div id="interactive" class="viewport"></div> <!-- QuaggaJS will render its video here -->
         
         <div id="status">Ready to scan...</div>
         <button id="startButton">Start Camera</button>
         <button id="stopButton">Stop Camera</button>
 
+        <!-- New section for product display and pay button -->
         <div id="productDisplay">
             <h2 id="productNameDisplay"></h2>
             <p>Price: <span id="productPriceDisplay"></span></p>
@@ -74,6 +55,10 @@
         </div>
     </div>
 
+    <!-- REMOVE ZXing-JS CDN -->
+    <!-- <script src="https://unpkg.com/@zxing/library@latest"></script> -->
+    
+    <!-- ADD QuaggaJS CDN -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="app.js"></script>
 </body>
