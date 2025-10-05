@@ -19,26 +19,32 @@ async function startScanner() {
     productDisplay.style.display = 'none';
     statusDiv.textContent = 'Starting camera...';
 
-    // --- CRITICAL: Ensure previous stream is completely stopped before starting a new one ---
-    // If a reader somehow exists from a previous failed attempt or incomplete stop, reset it.
     if (codeReader) {
         codeReader.reset();
-        codeReader = null; // Clear the reference
+        codeReader = null;
     }
-    // Also explicitly clear the video element's source
     video.srcObject = null;
-    video.load(); // Try reloading the video element to clear its state
-    // --- END CRITICAL CLEANUP ---
-
+    video.load();
 
     try {
-        codeReader = new ZXing.BrowserMultiFormatReader();
+        // --- ZXing-JS Decoder Hints Configuration ---
+        const hints = new Map();
+        // Specify the barcode formats you expect to improve performance and accuracy
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E]);
+        
+        // Add the TRY_HARDER hint
+        // This makes the decoder spend more time to find and decode barcodes.
+        // It can improve reliability but might increase processing time.
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        // --- End Hints Configuration ---
+
+        // Pass the hints map to the BrowserMultiFormatReader constructor
+        codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         const videoInputDevices = await codeReader.listVideoInputDevices();
         
         let selectedDeviceId;
         if (videoInputDevices.length > 0) {
-            // Prefer the last device, which is often the back camera on mobile
             selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
             console.log(`Using camera: ${videoInputDevices[videoInputDevices.length - 1].label || 'Default'}`);
         } else {
@@ -46,12 +52,11 @@ async function startScanner() {
         }
 
         const constraints = {
-            deviceId: { exact: selectedDeviceId }, // Explicitly select device
-            width: { ideal: 1920 }, // High width for better detail
-            height: { ideal: 1080 }, // High height for better detail
-            // Attempt to request continuous autofocus
-            focusMode: 'continuous', // This is an experimental/non-standard constraint
-            // facingMode: 'environment' // Explicitly request rear camera
+            deviceId: { exact: selectedDeviceId },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: 'continuous',
+            // facingMode: 'environment'
         };
 
         await codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
@@ -59,41 +64,39 @@ async function startScanner() {
                 console.log('Scanned:', result.text);
                 statusDiv.textContent = `Scanned: ${result.text}`;
                 handleBarcode(result.text);
-                stopScanner(); // Stop camera after successful scan
+                stopScanner();
             }
             if (err && !(err instanceof ZXing.NotFoundException)) {
                 console.error(err);
                 statusDiv.textContent = `Error: ${err}`;
             }
-        }, constraints); // Pass the constraints object here!
+        }, constraints);
 
         statusDiv.textContent = 'Camera started. Point at a barcode.';
     } catch (error) {
         console.error('Error starting camera:', error);
         statusDiv.textContent = `Error accessing camera: ${error.message}`;
         
-        // Ensure buttons are reset even if camera fails to start
         startButton.disabled = false;
         stopButton.disabled = true;
         video.style.display = 'none';
         
-        // Ensure codeReader is null on failure to prevent stale state
         if (codeReader) {
             codeReader.reset();
             codeReader = null;
         }
-        video.srcObject = null; // Clear source on error
+        video.srcObject = null;
         video.load();
     }
 }
 
 function stopScanner() {
     if (codeReader) {
-        codeReader.reset(); // This properly stops the camera stream when using decodeFromVideoDevice
-        codeReader = null; // Clear the reference to the reader
+        codeReader.reset();
+        codeReader = null;
     }
-    video.srcObject = null; // Crucial: Disconnect video element from any stream
-    video.load(); // Important: Reload the video element to fully reset its state
+    video.srcObject = null;
+    video.load();
     video.style.display = 'none';
     startButton.disabled = false;
     stopButton.disabled = true;
