@@ -1,4 +1,5 @@
 const interactiveDiv = document.getElementById('interactive');
+const videoElement = document.getElementById('barcode-video'); // Reference the new video element
 const statusDiv = document.getElementById('status');
 const startButton = document.getElementById('startButton');
 const stopButton = document.getElementById('stopButton');
@@ -13,7 +14,7 @@ const PAYMENT_BASE_URL = 'https://payment.site/'; // Ensure this is HTTPS for pr
 let scannerRunning = false; // Flag to track scanner state
 
 async function startScanner() {
-    if (scannerRunning) return; // Prevent multiple starts
+    if (scannerRunning) return;
 
     startButton.disabled = true;
     stopButton.disabled = false;
@@ -21,76 +22,112 @@ async function startScanner() {
     productDisplay.style.display = 'none';
     statusDiv.textContent = 'Starting camera...';
 
+    // Ensure video element is ready for a new stream
+    videoElement.srcObject = null;
+    videoElement.load();
+
     // QuaggaJS configuration
-    // Focused on EAN codes
     Quagga.init({
         inputStream : {
             name : "Live",
             type : "LiveStream",
-            target: interactiveDiv, // Or document.querySelector('#interactive')
+            target: videoElement, // Direct QuaggaJS to use our specific video element
             constraints: {
-                // Ensure a high resolution for better decoding
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                facingMode: "environment" // Use the back camera
+                width: { min: 640, ideal: 1280 }, // Using ideal instead of max for robustness
+                height: { min: 480, ideal: 720 },
+                facingMode: "environment", // Use the back camera
+                // Try explicitly requesting continuous autofocus
+                advanced: [{ focusMode: "continuous" }] // QuaggaJS passes these to getUserMedia
             },
+            // The following `area` and `singleChannel` settings are often helpful for performance
+            // area: { // defines the coodinates where the code should be located
+            //     top: "0%",    // upper-limit of the rectangle
+            //     right: "0%",  // right-limit
+            //     left: "0%",   // left-limit
+            //     bottom: "0%"  // lower-limit
+            // },
+            // singleChannel: false // true: only one channel per 1D-reader
         },
         decoder : {
-            readers : ["ean_reader", "ean_8_reader"], // Only EAN codes
-            // Other decoder properties can be added for tuning:
-            // multiple: false, // Decode only one barcode per frame
-            // debug: { showCanvas: true, showPatches: true },
+            readers : ["ean_reader", "ean_8_reader"],
+            debug: { // Enable debug to see if processing is happening on the canvas
+                showCanvas: true,
+                showPatches: true,
+                showFoundBox: true,
+                showSkeleton: true,
+                showLabels: true,
+                showPoint: true,
+                showRemaining: true,
+                boxFromPatches: {
+                    showTransformed: true,
+                    showTransformedBox: true,
+                    showBB: true
+                }
+            }
         },
-        // Optional: Locator for fine-tuning how QuaggaJS searches for barcodes
         locator: {
-            patchSize: "medium", // 'x-small', 'small', 'medium', 'large', 'x-large'
-            halfSample: true, // Speeds up detection
-            // Set a specific area to focus scanning, e.g., the middle of the screen
-            // area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
-        }
+            patchSize: "medium",
+            halfSample: true,
+            // xFactor: '0.8', // Higher value might capture more of the code
+            // yFactor: '0.8',
+            // debug: {
+            //     showCanvas: true,
+            //     showPatches: true,
+            //     showFoundBox: true,
+            //     showSkeleton: true,
+            //     showLabels: true,
+            //     showPoint: true,
+            //     showRemaining: true,
+            //     boxFromPatches: {
+            //         showTransformed: true,
+            //         showTransformedBox: true,
+            //         showBB: true
+            //     }
+            // }
+        },
+        frequency: 10 // How many times per second to decode. Lower for less CPU, higher for faster reads.
     }, function(err) {
         if (err) {
             console.error('QuaggaJS init error:', err);
             statusDiv.textContent = `Error accessing camera: ${err.message || err}`;
-            stopScanner(); // Attempt to stop on error
+            stopScanner();
             return;
         }
         console.log("QuaggaJS initialization finished. Starting scanner...");
         Quagga.start();
         scannerRunning = true;
         statusDiv.textContent = 'Camera started. Point at a barcode.';
+        // Ensure video plays after init, sometimes needed on mobile
+        videoElement.play(); 
     });
 
-    // QuaggaJS event listeners
     Quagga.onDetected(function(result) {
         if (result && result.codeResult && result.codeResult.code) {
             const barcode = result.codeResult.code;
             console.log('QuaggaJS Detected:', barcode);
             statusDiv.textContent = `Scanned: ${barcode}`;
             handleBarcode(barcode);
-            stopScanner(); // Stop camera after successful scan
+            stopScanner(); 
         }
     });
 
     Quagga.onProcessed(function(result) {
-        // You can use this for visual feedback: draw detected areas on canvas
+        // Only draw if debug is enabled or you want permanent visual feedback
         var drawingCtx = Quagga.canvas.ctx.overlay,
             drawingCanvas = Quagga.canvas.dom.overlay;
 
-        if (result) {
+        if (drawingCtx && drawingCanvas && result) {
+            drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.width), parseInt(drawingCanvas.height));
             if (result.boxes) {
-                drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.width), parseInt(drawingCanvas.height));
                 result.boxes.filter(function (box) {
                     return box !== result.box;
                 }).forEach(function (box) {
                     Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
                 });
             }
-
             if (result.box) {
                 Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
             }
-
             if (result.codeResult && result.codeResult.code) {
                 Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'red', lineWidth: 3});
             }
@@ -109,6 +146,15 @@ function stopScanner() {
     stopButton.disabled = true;
     productDisplay.style.display = 'none';
     statusDiv.textContent = 'Camera stopped.';
+
+    // Clean up Quagga's injected elements if any, and our video element
+    if (videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach(track => track.stop());
+        videoElement.srcObject = null;
+    }
+    videoElement.load();
+    // Remove any canvas elements Quagga might have created if not reusing the target
+    // This is less necessary if you always target the same video element.
 }
 
 async function handleBarcode(barcode) {
@@ -135,7 +181,6 @@ async function handleBarcode(barcode) {
     }
 }
 
-// --- Event Listeners ---
 startButton.addEventListener('click', startScanner);
 stopButton.addEventListener('click', stopScanner);
 
@@ -149,7 +194,6 @@ payButton.addEventListener('click', () => {
     }
 });
 
-// Initial button states
 stopButton.disabled = true;
 productDisplay.style.display = 'none';
 interactiveDiv.style.display = 'none'; // Hide QuaggaJS viewport on load
